@@ -191,7 +191,7 @@ namespace Spine.Unity {
 		public SpriteMaskInteraction maskInteraction = SpriteMaskInteraction.None;
 
 		[System.Serializable]
-		public class SpriteMaskInteractionMaterials {
+		public class SpriteMaskInteractionMaterials : System.IDisposable {
 			public bool AnyMaterialCreated {
 				get {
 					return materialsMaskDisabled.Length > 0 ||
@@ -201,11 +201,22 @@ namespace Spine.Unity {
 			}
 
 			/// <summary>Material references for switching material sets at runtime when <see cref="SkeletonRenderer.maskInteraction"/> changes to <see cref="SpriteMaskInteraction.None"/>.</summary>
-			public Material[] materialsMaskDisabled = new Material[0];
+			public Material[] materialsMaskDisabled = System.Array.Empty<Material>(); // CA1825
 			/// <summary>Material references for switching material sets at runtime when <see cref="SkeletonRenderer.maskInteraction"/> changes to <see cref="SpriteMaskInteraction.VisibleInsideMask"/>.</summary>
-			public Material[] materialsInsideMask = new Material[0];
+			public Material[] materialsInsideMask = System.Array.Empty<Material>(); // CA1825
 			/// <summary>Material references for switching material sets at runtime when <see cref="SkeletonRenderer.maskInteraction"/> changes to <see cref="SpriteMaskInteraction.VisibleOutsideMask"/>.</summary>
-			public Material[] materialsOutsideMask = new Material[0];
+			public Material[] materialsOutsideMask = System.Array.Empty<Material>(); // CA1825
+
+			public void Dispose() {
+				foreach (var mat in materialsInsideMask) {
+					if (mat != null)
+						Object.Destroy(mat);
+				}
+				foreach (var mat in materialsOutsideMask) {
+					if (mat != null)
+						Object.Destroy(mat);
+				}
+			}
 		}
 		/// <summary>Material references for switching material sets at runtime when <see cref="SkeletonRenderer.maskInteraction"/> changes.</summary>
 		public SpriteMaskInteractionMaterials maskMaterials = new SpriteMaskInteractionMaterials();
@@ -680,7 +691,8 @@ namespace Spine.Unity {
 			} else if (materialsChanged) {
 				meshRenderer.sharedMaterials = rendererBuffers.GetUpdatedSharedMaterialsArray();
 			}
-			if (materialsChanged && (this.maskMaterials.AnyMaterialCreated)) {
+			if (materialsChanged && this.maskMaterials.AnyMaterialCreated) {
+				this.maskMaterials.Dispose();
 				this.maskMaterials = new SpriteMaskInteractionMaterials();
 			}
 
